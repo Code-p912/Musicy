@@ -7,75 +7,103 @@
 <style>
   body {
     margin: 0;
-    font-family: sans-serif;
+    font-family: 'Segoe UI', sans-serif;
     background: linear-gradient(#7b2d9f, #7b2d9f);
     color: white;
     display: flex;
     flex-direction: column;
     align-items: center;
+    overflow-x: hidden;
   }
+
   header {
     padding: 20px;
-    font-size: 2rem;
+    font-size: 2.5rem;
     font-weight: bold;
     text-align: center;
+    text-shadow: 2px 2px 6px rgba(0,0,0,0.5);
   }
+
   .controls {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: 12px;
     margin-bottom: 20px;
+    justify-content: center;
   }
+
   .controls button {
     background-color: #2c0a71;
     border: none;
     border-radius: 999px;
-    padding: 10px 16px;
+    padding: 12px 20px;
     color: white;
     font-weight: bold;
-    font-size: 1rem;
+    font-size: 1.1rem;
     cursor: pointer;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
   }
+
+  .controls button:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 10px rgba(0,0,0,0.5);
+  }
+
   .grid {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    margin-bottom: 20px;
+    gap: 16px;
+    margin-bottom: 30px;
   }
+
   .track-row {
     display: flex;
-    gap: 8px;
+    gap: 10px;
     justify-content: center;
     flex-wrap: nowrap;
   }
+
   .cell {
-    width: 48px;
-    height: 48px;
+    width: 50px;
+    height: 50px;
     border-radius: 12px;
-    background: rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.05);
     display: flex;
     justify-content: center;
     align-items: center;
     cursor: pointer;
+    box-shadow: inset 0 -2px 4px rgba(0,0,0,0.3);
+    transition: transform 0.2s ease;
   }
+
   .cell.active svg polygon,
   .cell.active svg ellipse {
     fill: #2c0a71;
     stroke: none;
   }
+
+  .cell.playing {
+    box-shadow: 0 0 12px 3px #fff9, 0 0 20px 6px #2c0a71aa inset;
+    transform: scale(1.2);
+  }
+
   svg {
     width: 36px;
     height: 36px;
   }
+
   footer {
     font-size: 0.8rem;
-    opacity: 0.8;
+    opacity: 0.7;
     margin: 20px;
     text-align: center;
   }
+
   @media(max-width:480px){
-    .cell { width: 36px; height: 36px; }
+    .cell { width: 38px; height: 38px; }
     svg { width: 28px; height: 28px; }
+    .controls button { padding: 10px 16px; font-size: 1rem; }
   }
 </style>
 </head>
@@ -90,7 +118,7 @@
 
 <div class="grid" id="grid"></div>
 
-<footer>Made with WebAudio • Shapes: ovals & triangles • Theme: #7b2d9f / #2c0a71</footer>
+<footer>Musicy • Mobile-friendly • Shapes: ovals & triangles • Theme: #7b2d9f / #2c0a71</footer>
 
 <script>
 const TRACKS = ['Bass', 'Beat', 'Layer', 'Tone'];
@@ -103,7 +131,7 @@ let audioCtx = null;
 
 // Build grid
 const gridEl = document.getElementById('grid');
-TRACKS.forEach((track, r) => {
+TRACKS.forEach((track,r) => {
   const rowEl = document.createElement('div');
   rowEl.className = 'track-row';
   for(let c=0;c<STEPS;c++){
@@ -111,12 +139,14 @@ TRACKS.forEach((track, r) => {
     cell.className = 'cell';
     cell.dataset.row = r;
     cell.dataset.col = c;
+
     const svg = document.createElementNS("http://www.w3.org/2000/svg","svg");
     if(track==='Beat'){
       const tri = document.createElementNS("http://www.w3.org/2000/svg","polygon");
       tri.setAttribute("points","50,12 88,88 12,88");
-      tri.setAttribute("stroke","#2c0a71");
       tri.setAttribute("fill","none");
+      tri.setAttribute("stroke","#2c0a71");
+      tri.setAttribute("stroke-width","3");
       svg.appendChild(tri);
     } else {
       const oval = document.createElementNS("http://www.w3.org/2000/svg","ellipse");
@@ -124,13 +154,14 @@ TRACKS.forEach((track, r) => {
       oval.setAttribute("cy","50");
       oval.setAttribute("rx","40");
       oval.setAttribute("ry","26");
-      oval.setAttribute("stroke","#2c0a71");
       oval.setAttribute("fill","none");
+      oval.setAttribute("stroke","#2c0a71");
       oval.setAttribute("stroke-width","4");
       svg.appendChild(oval);
     }
     cell.appendChild(svg);
     rowEl.appendChild(cell);
+
     // toggle cell on click
     cell.addEventListener('click', ()=> {
       pattern[r][c] = !pattern[r][c];
@@ -140,7 +171,7 @@ TRACKS.forEach((track, r) => {
   gridEl.appendChild(rowEl);
 });
 
-// Simple WebAudio sounds
+// WebAudio
 function playStep(step){
   if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
   TRACKS.forEach((track,r)=>{
@@ -154,6 +185,12 @@ function playStep(step){
       osc.start();
       osc.stop(audioCtx.currentTime+0.15);
     }
+  });
+  // Highlight current step
+  document.querySelectorAll('.cell').forEach(cell=>{
+    const r = cell.dataset.row;
+    const c = cell.dataset.col;
+    cell.classList.toggle('playing', parseInt(c)===step);
   });
 }
 
@@ -171,6 +208,8 @@ function startStop(){
     clearInterval(timer);
     timer=null;
     document.getElementById('playBtn').innerText='Play';
+    // clear highlight
+    document.querySelectorAll('.cell').forEach(c=>c.classList.remove('playing'));
   }
 }
 
@@ -184,7 +223,7 @@ function randomize(){
 }
 function clearAll(){
   pattern = TRACKS.map(()=>Array(STEPS).fill(false));
-  document.querySelectorAll('.cell').forEach(cell=>cell.classList.remove('active'));
+  document.querySelectorAll('.cell').forEach(cell=>cell.classList.remove('active','playing'));
 }
 
 // Bind buttons
